@@ -1,0 +1,225 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Calculator</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: Arial, sans-serif;
+  background: #090d18;
+  color: white;
+  padding: 15px;
+}
+.calculator {
+  width: 100%;
+  max-width: 390px;
+  background: #171e2d;
+  padding: 18px;
+  border-radius: 20px;
+  box-shadow: 0 10px 35px #0008;
+}
+h2 { text-align: center; }
+#display {
+  width: 100%;
+  height: 85px;
+  background: #080d18;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  text-align: right;
+  font-size: 27px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.toolbar, .grid {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 9px;
+}
+.toolbar { grid-template-columns: repeat(3,1fr); }
+.grid { grid-template-columns: repeat(4,1fr); }
+button {
+  border: none;
+  border-radius: 10px;
+  min-height: 52px;
+  font-size: 17px;
+  background: #29364b;
+  color: white;
+  cursor: pointer;
+}
+button:active { opacity: .7; }
+.special { background: #28517c; }
+.operator { background: #176b59; }
+.equal { background: #09a477; }
+#history {
+  max-height: 130px;
+  overflow-y: auto;
+  font-size: 14px;
+}
+</style>
+</head>
+<body>
+<div class="calculator">
+<h2>ULTIMATE CALCULATOR</h2>
+<input id="display" value="0" readonly>
+
+<div class="toolbar">
+<button class="special" onclick="toggleAngle()">DEG</button>
+<button class="special" onclick="showHistory()">HISTORY</button>
+<button class="special" onclick="toggleTheme()">THEME</button>
+</div>
+
+<div class="grid">
+<button class="special" onclick="clearDisplay()">AC</button>
+<button class="special" onclick="del()">DEL</button>
+<button onclick="add('(')">(</button>
+<button onclick="add(')')">)</button>
+
+<button onclick="add('sin(')">sin</button>
+<button onclick="add('cos(')">cos</button>
+<button onclick="add('tan(')">tan</button>
+<button class="operator" onclick="add('÷')">÷</button>
+
+<button onclick="add('asin(')">asin</button>
+<button onclick="add('acos(')">acos</button>
+<button onclick="add('atan(')">atan</button>
+<button class="operator" onclick="add('×')">×</button>
+
+<button onclick="add('7')">7</button>
+<button onclick="add('8')">8</button>
+<button onclick="add('9')">9</button>
+<button class="operator" onclick="add('-')">−</button>
+
+<button onclick="add('4')">4</button>
+<button onclick="add('5')">5</button>
+<button onclick="add('6')">6</button>
+<button class="operator" onclick="add('+')">+</button>
+
+<button onclick="add('1')">1</button>
+<button onclick="add('2')">2</button>
+<button onclick="add('3')">3</button>
+<button onclick="add('^')">^</button>
+
+<button onclick="add('0')">0</button>
+<button onclick="add('.')">.</button>
+<button onclick="add('pi')">π</button>
+<button onclick="add('e')">e</button>
+
+<button onclick="add('sqrt(')">√</button>
+<button onclick="add('log(')">log</button>
+<button onclick="add('ln(')">ln</button>
+<button onclick="add('exp(')">exp</button>
+
+<button onclick="add('abs(')">abs</button>
+<button onclick="add('floor(')">floor</button>
+<button onclick="add('ceil(')">ceil</button>
+<button onclick="add('%')">%</button>
+
+<button class="special" onclick="add('**2')">x²</button>
+<button class="special" onclick="add('/100')">%</button>
+<button class="equal" onclick="calculate()" style="grid-column:span 2">=</button>
+</div>
+
+<div id="history"></div>
+</div>
+
+<script>
+let expression = "";
+let degrees = true;
+let dark = true;
+let history = [];
+
+const display = document.getElementById("display");
+
+function refresh() {
+ display.value = expression || "0";
+}
+
+function add(value) {
+ expression += value;
+ refresh();
+}
+
+function clearDisplay() {
+ expression = "";
+ refresh();
+}
+
+function del() {
+ expression = expression.slice(0,-1);
+ refresh();
+}
+
+function toggleAngle() {
+ degrees = !degrees;
+ document.querySelector(".toolbar button").textContent =
+ degrees ? "DEG" : "RAD";
+}
+
+function calculate() {
+ try {
+ let exp = expression.replace(/×/g,"*")
+ .replace(/÷/g,"/")
+ .replace(/\^/g,"**");
+
+ if (!/^[0-9+\-*/().\s_a-zA-Z%]*$/.test(exp))
+ throw Error();
+
+ const allowed = {
+ pi: Math.PI, e: Math.E,
+ sqrt: Math.sqrt, abs: Math.abs,
+ floor: Math.floor, ceil: Math.ceil,
+ log: Math.log10, ln: Math.log,
+ exp: Math.exp,
+ sin: x => Math.sin(degrees ? x*Math.PI/180 : x),
+ cos: x => Math.cos(degrees ? x*Math.PI/180 : x),
+ tan: x => Math.tan(degrees ? x*Math.PI/180 : x),
+ asin: x => degrees ? Math.asin(x)*180/Math.PI : Math.asin(x),
+ acos: x => degrees ? Math.acos(x)*180/Math.PI : Math.acos(x),
+ atan: x => degrees ? Math.atan(x)*180/Math.PI : Math.atan(x)
+ };
+
+ const names = Object.keys(allowed);
+ const values = Object.values(allowed);
+ const result = Function(...names, '"use strict"; return (' + exp + ')')(...values);
+
+ if (typeof result !== "number" || !Number.isFinite(result))
+ throw Error();
+
+ history.unshift(expression + " = " + result);
+ expression = String(Number(result.toPrecision(12)));
+ refresh();
+ } catch {
+ display.value = "Invalid expression";
+ }
+}
+
+function showHistory() {
+ document.getElementById("history").innerHTML =
+ history.length ? history.slice(0,20).map(x =>
+ "<div>"+x+"</div>").join("") : "No calculations yet";
+}
+
+function toggleTheme() {
+ dark = !dark;
+ document.body.style.background = dark ? "#090d18" : "#e9edf5";
+ document.body.style.color = dark ? "white" : "#111";
+ document.querySelector(".calculator").style.background =
+ dark ? "#171e2d" : "#ffffff";
+ document.querySelectorAll("button").forEach(b => {
+ b.style.color = dark ? "white" : "#111";
+ });
+ display.style.background = dark ? "#080d18" : "#eef1f5";
+ display.style.color = dark ? "white" : "#111";
+}
+</script>
+</body>
+</html>
